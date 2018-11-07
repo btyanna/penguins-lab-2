@@ -36,3 +36,60 @@ pen2 = pen %>%
 pen2
 ```
 
+Exploratory graphs and Levene's test for equal variances
+
+```{r}
+# creating histogram
+his = ggplot(pen2, aes(x = flipper_length)) +
+  geom_histogram(aes(fill = common_name)) 
+
+his # do these look like their means differ based on this? YES
+
+# creating qqplot
+qq = ggplot(pen2, aes(sample = flipper_length)) +
+  geom_qq(aes(color = common_name))
+
+qq # based on qq & hist, obs for ea group appear normally distributed. n > 30 so makes sense it's normally distributed by CLT.
+```
+
+Evaluate variances and perform a Levene's Test for equal variances
+```{r}
+# If largest sample variance is < 4x greater tha nthe smallest sample variance, the nthese are "close enough" to consider variances equal
+
+variance = pen2 %>% 
+  group_by(common_name) %>% 
+  summarize(variance = var(flipper_length))
+variance # unit is obs. unit^2... largest variance 33.1 is /> 4x greater than smallest variance (15.2)
+
+# Levene's Test
+# leveneTest function in 'car' package
+levenepen = leveneTest(pen2$flipper_length ~ pen2$common_name)
+levenepen
+
+# Ho: Variances are =
+# Ha: Variances are /= equal
+
+# p value = 0.05782 --> no sig diff in variances across species
+```
+
+One-way ANOVA for penquin flipper lengths by species (common_name)
+```{r}
+# anova
+anovatest = aov(pen2$flipper_length ~ pen2$common_name)
+summary(anovatest) # to get full summary of anova outcome
+
+# Ho: Means across ALL GROUPS are =
+# Ha: At least 2 samples differ
+# p value is almost 0... therefore must reject null and find out which sample is different from the rest, or if all of them are different?
+# ----------------------------
+# post-hoc test by Turkey's HSD
+penph = TukeyHSD(anovatest)
+penph
+
+# Ho: No sig diff in pairwise means
+# Ha: Sig diff in pairwise means
+# p values indicate that all pairwise means are sig diff from each other
+```
+Mean flipper lengths of femaile penguins differed significantly for all species studied (one-way anova, F(df) = statistic, p < 0.001, $\alpha$ = 0.05 with post-hoc Tukey's HSD, $\alpha$ = 0.05).
+
+Note: aov.test funcrion in the `onewaytests` package DOES allow for inline references.
